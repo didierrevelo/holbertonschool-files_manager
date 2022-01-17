@@ -1,8 +1,9 @@
+import { ObjectId } from 'mongodb';
 import sha1 from 'sha1';
 import Queue from 'bull';
 // import redisClient from '../utils/redis';
 import dbClient from '../utils/db';
-// import userUtils from '../utils/user';
+import userUtils from '../utils/user';
 
 const userQueue = new Queue('userQueue');
 
@@ -44,5 +45,21 @@ export default class UsersController {
     });
 
     return res.status(201).send(user);
+  }
+
+  static async getMe(request, response) {
+    const { userId } = await userUtils.getUserIdAndKey(request);
+
+    const user = await userUtils.getUser({
+      _id: ObjectId(userId),
+    });
+
+    if (!user) return response.status(401).send({ error: 'Unauthorized' });
+
+    const processedUser = { id: user._id, ...user };
+    delete processedUser._id;
+    delete processedUser.password;
+
+    return response.status(200).send(processedUser);
   }
 }
