@@ -10,10 +10,10 @@ export default class AppController {
     res.status(200).send(status);
   }
 
-  static getStats(req, res) {
+  static async getStats(req, res) {
     const stats = {
-      users: dbClient.nbUsers(),
-      files: dbClient.nbFiles(),
+      users: await dbClient.nbUsers(),
+      files: await dbClient.nbFiles(),
     };
     res.status(200).send(stats);
   }
