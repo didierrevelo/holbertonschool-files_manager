@@ -8,7 +8,7 @@ app.use(express.json());
 controllerRouting(app);
 
 app.listen(PORT, () => {
-  console.log(`Server started on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
 
 export default app;
