@@ -21,7 +21,7 @@ export default class UsersController {
     const existEmail = await dbClient.usersCollection.findOne({ email });
 
     if (existEmail) {
-      return res.status(400).send({ error: 'Already exists' });
+      return res.status(400).send({ error: 'Already exist' });
     }
 
     const passwordSha1 = sha1(password);
