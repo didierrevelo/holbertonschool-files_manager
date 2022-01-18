@@ -34,9 +34,13 @@ export default class FilesController {
       req,
     );
 
-    if (validationError) return res.status(400).send({ error: validationError });
+    if (validationError) {
+      return res.status(400).send({ error: validationError });
+    }
 
-    if (fileParams.parentId !== 0 && !validatedUtils.isValidId(fileParams.parentId)) return res.status(400).send({ error: 'Parent not found' });
+    if (fileParams.parentId !== 0 && !validatedUtils.isValidId(fileParams.parentId)) {
+      return res.status(400).send({ error: 'Parent not found' });
+    }
 
     const { error, code, newFile } = await fileUtils.saveFile(
       userId,
@@ -70,7 +74,9 @@ export default class FilesController {
 
     if (!user) return res.status(401).send({ error: 'Unauthorized' });
 
-    if (!validatedUtils.isValidId(fileId) || !validatedUtils.isValidId(userId)) return res.status(404).send({ error: 'Not found' });
+    if (!validatedUtils.isValidId(fileId) || !validatedUtils.isValidId(userId)) {
+      return res.status(404).send({ error: 'Not found' });
+    }
 
     const result = await fileUtils.getFile({
       _id: ObjectId(fileId),
@@ -102,7 +108,9 @@ export default class FilesController {
     if (Number.isNaN(page)) page = 0;
 
     if (parentId !== 0 && parentId !== '0') {
-      if (!validatedUtils.isValidId(parentId)) return res.status(401).send({ error: 'Unauthorized' });
+      if (!validatedUtils.isValidId(parentId)) {
+        return res.status(401).send({ error: 'Unauthorized' });
+      }
 
       parentId = ObjectId(parentId);
 
