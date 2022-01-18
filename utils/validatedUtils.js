@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongodb';
 
-const basicUtils = {
+const validatedUtils = {
   isValidId(id) {
     try {
       ObjectId(id);
@@ -11,4 +11,4 @@ const basicUtils = {
   },
 };
 
-export default basicUtils;
+export default validatedUtils;

@@ -3,7 +3,7 @@ import mime from 'mime-types';
 import Queue from 'bull';
 import userUtils from '../utils/user';
 import fileUtils from '../utils/file';
-import basicUtils from '../utils/basic';
+import validatedUtils from '../utils/validatedUtils';
 
 const FOLDER_PATH = process.env.FOLDER_PATH || '/tmp/files_manager';
 
@@ -13,7 +13,7 @@ export default class FilesController {
   static async postUpload(request, response) {
     const { userId } = await userUtils.getUserIdAndKey(request);
 
-    if (!basicUtils.isValidId(userId)) {
+    if (!validatedUtils.isValidId(userId)) {
       return response.status(401).send({ error: 'Unauthorized' });
     }
     if (!userId && request.body.type === 'image') {
@@ -34,7 +34,7 @@ export default class FilesController {
       return response.status(400).send({ error: validationError });
     }
 
-    if (fileParams.parentId !== 0 && !basicUtils.isValidId(fileParams.parentId)) {
+    if (fileParams.parentId !== 0 && !validatedUtils.isValidId(fileParams.parentId)) {
       return response.status(400).send({ error: 'Parent not found' });
     }
 
@@ -70,7 +70,7 @@ export default class FilesController {
 
     if (!user) return response.status(401).send({ error: 'Unauthorized' });
 
-    if (!basicUtils.isValidId(fileId) || !basicUtils.isValidId(userId)) {
+    if (!validatedUtils.isValidId(fileId) || !validatedUtils.isValidId(userId)) {
       return response.status(404).send({ error: 'Not found' });
     }
 
@@ -104,7 +104,7 @@ export default class FilesController {
     if (Number.isNaN(page)) page = 0;
 
     if (parentId !== 0 && parentId !== '0') {
-      if (!basicUtils.isValidId(parentId)) {
+      if (!validatedUtils.isValidId(parentId)) {
         return response.status(401).send({ error: 'Unauthorized' });
       }
 
@@ -165,7 +165,7 @@ export default class FilesController {
     const { id: fileId } = request.params;
     const size = request.query.size || 0;
 
-    if (!basicUtils.isValidId(fileId)) {
+    if (!validatedUtils.isValidId(fileId)) {
       return response.status(404).send({ error: 'Not found' });
     }
 
