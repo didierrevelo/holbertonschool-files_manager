@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { promises as fsPromises } from 'fs';
 import dbClient from './db';
 import userUtils from './user';
-import validatedUtils from './validatedUtils';
+import basicUtils from './basic';
 
 /**
  * Module with file utilities
@@ -35,7 +35,7 @@ const fileUtils = {
     } else if (parentId && parentId !== '0') {
       let file;
 
-      if (validatedUtils.isValidId(parentId)) {
+      if (basicUtils.isValidId(parentId)) {
         file = await this.getFile({
           _id: ObjectId(parentId),
         });
@@ -162,11 +162,11 @@ const fileUtils = {
   async publishUnpublish(request, setPublish) {
     const { id: fileId } = request.params;
 
-    if (!validatedUtils.isValidId(fileId)) return { error: 'Unauthorized', code: 401 };
+    if (!basicUtils.isValidId(fileId)) return { error: 'Unauthorized', code: 401 };
 
     const { userId } = await userUtils.getUserIdAndKey(request);
 
-    if (!validatedUtils.isValidId(userId)) return { error: 'Unauthorized', code: 401 };
+    if (!basicUtils.isValidId(userId)) return { error: 'Unauthorized', code: 401 };
 
     const user = await userUtils.getUser({
       _id: ObjectId(userId),
