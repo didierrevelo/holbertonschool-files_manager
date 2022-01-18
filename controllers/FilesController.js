@@ -1,26 +1,22 @@
 import { ObjectId } from 'mongodb';
-// import sha1 from 'sha1';
+import mime from 'mime-types';
 import Queue from 'bull';
-// import redisClient from '../utils/redis';
-// import dbClient from '../utils/db';
 import userUtils from '../utils/user';
-// import mime from 'mime-types';
-import validatedUtils from '../utils/validatedUtils';
 import fileUtils from '../utils/file';
+import validatedUtils from '../utils/validatedUtils';
 
 const FOLDER_PATH = process.env.FOLDER_PATH || '/tmp/files_manager';
 
 const fileQueue = new Queue('fileQueue');
 
 export default class FilesController {
-  static async postUpload(req, res) {
-    const { userId } = await userUtils.getUserIdAndKey(req);
+  static async postUpload(request, response) {
+    const { userId } = await userUtils.getUserIdAndKey(request);
 
     if (!validatedUtils.isValidId(userId)) {
-      return res.status(401).send({ error: 'Unauthorized' });
+      return response.status(401).send({ error: 'Unauthorized' });
     }
-
-    if (!userId && req.body.type === 'image') {
+    if (!userId && request.body.type === 'image') {
       await fileQueue.add({});
     }
 
@@ -28,18 +24,18 @@ export default class FilesController {
       _id: ObjectId(userId),
     });
 
-    if (!user) return res.status(401).send({ error: 'Unauthorized' });
+    if (!user) return response.status(401).send({ error: 'Unauthorized' });
 
     const { error: validationError, fileParams } = await fileUtils.validateBody(
-      req,
+      request,
     );
 
     if (validationError) {
-      return res.status(400).send({ error: validationError });
+      return response.status(400).send({ error: validationError });
     }
 
     if (fileParams.parentId !== 0 && !validatedUtils.isValidId(fileParams.parentId)) {
-      return res.status(400).send({ error: 'Parent not found' });
+      return response.status(400).send({ error: 'Parent not found' });
     }
 
     const { error, code, newFile } = await fileUtils.saveFile(
@@ -49,8 +45,8 @@ export default class FilesController {
     );
 
     if (error) {
-      if (res.body.type === 'image') await fileQueue.add({ userId });
-      return res.status(code).send(error);
+      if (response.body.type === 'image') await fileQueue.add({ userId });
+      return response.status(code).send(error);
     }
 
     if (fileParams.type === 'image') {
@@ -60,22 +56,22 @@ export default class FilesController {
       });
     }
 
-    return res.status(201).send(newFile);
+    return response.status(201).send(newFile);
   }
 
-  static async getShow(req, res) {
-    const fileId = req.params.id;
+  static async getShow(request, response) {
+    const fileId = request.params.id;
 
-    const { userId } = await userUtils.getUserIdAndKey(req);
+    const { userId } = await userUtils.getUserIdAndKey(request);
 
     const user = await userUtils.getUser({
       _id: ObjectId(userId),
     });
 
-    if (!user) return res.status(401).send({ error: 'Unauthorized' });
+    if (!user) return response.status(401).send({ error: 'Unauthorized' });
 
     if (!validatedUtils.isValidId(fileId) || !validatedUtils.isValidId(userId)) {
-      return res.status(404).send({ error: 'Not found' });
+      return response.status(404).send({ error: 'Not found' });
     }
 
     const result = await fileUtils.getFile({
@@ -83,33 +79,33 @@ export default class FilesController {
       userId: ObjectId(userId),
     });
 
-    if (!result) return res.status(404).send({ error: 'Not found' });
+    if (!result) return response.status(404).send({ error: 'Not found' });
 
     const file = fileUtils.processFile(result);
 
-    return res.status(200).send(file);
+    return response.status(200).send(file);
   }
 
-  static async getIndex(req, res) {
-    const { userId } = await userUtils.getUserIdAndKey(req);
+  static async getIndex(request, response) {
+    const { userId } = await userUtils.getUserIdAndKey(request);
 
     const user = await userUtils.getUser({
       _id: ObjectId(userId),
     });
 
-    if (!user) return res.status(401).send({ error: 'Unauthorized' });
+    if (!user) return response.status(401).send({ error: 'Unauthorized' });
 
-    let parentId = req.query.parentId || '0';
+    let parentId = request.query.parentId || '0';
 
     if (parentId === '0') parentId = 0;
 
-    let page = Number(req.query.page) || 0;
+    let page = Number(request.query.page) || 0;
 
     if (Number.isNaN(page)) page = 0;
 
     if (parentId !== 0 && parentId !== '0') {
       if (!validatedUtils.isValidId(parentId)) {
-        return res.status(401).send({ error: 'Unauthorized' });
+        return response.status(401).send({ error: 'Unauthorized' });
       }
 
       parentId = ObjectId(parentId);
@@ -118,7 +114,9 @@ export default class FilesController {
         _id: ObjectId(parentId),
       });
 
-      if (!folder || folder.type !== 'folder') return res.status(200).send([]);
+      if (!folder || folder.type !== 'folder') {
+        return response.status(200).send([]);
+      }
     }
 
     const pipeline = [
@@ -137,6 +135,62 @@ export default class FilesController {
       fileList.push(document);
     });
 
-    return res.status(200).send(fileList);
+    return response.status(200).send(fileList);
+  }
+
+  static async putPublish(request, response) {
+    const { error, code, updatedFile } = await fileUtils.publishUnpublish(
+      request,
+      true,
+    );
+
+    if (error) return response.status(code).send({ error });
+
+    return response.status(code).send(updatedFile);
+  }
+
+  static async putUnpublish(request, response) {
+    const { error, code, updatedFile } = await fileUtils.publishUnpublish(
+      request,
+      false,
+    );
+
+    if (error) return response.status(code).send({ error });
+
+    return response.status(code).send(updatedFile);
+  }
+
+  static async getFile(request, response) {
+    const { userId } = await userUtils.getUserIdAndKey(request);
+    const { id: fileId } = request.params;
+    const size = request.query.size || 0;
+
+    if (!validatedUtils.isValidId(fileId)) {
+      return response.status(404).send({ error: 'Not found' });
+    }
+
+    const file = await fileUtils.getFile({
+      _id: ObjectId(fileId),
+    });
+
+    if (!file || !fileUtils.isOwnerAndPublic(file, userId)) {
+      return response.status(404).send({ error: 'Not found' });
+    }
+
+    if (file.type === 'folder') {
+      return response
+        .status(400)
+        .send({ error: "A folder doesn't have content" });
+    }
+
+    const { error, code, data } = await fileUtils.getFileData(file, size);
+
+    if (error) return response.status(code).send({ error });
+
+    const mimeType = mime.contentType(file.name);
+
+    response.setHeader('Content-Type', mimeType);
+
+    return response.status(200).send(data);
   }
 }
